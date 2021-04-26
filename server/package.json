@@ -1,0 +1,11 @@
+{
+  "name": "deploy-example",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": "Vitaly Semyachkin",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "pg": "^8.6.0"
+  }
+}
