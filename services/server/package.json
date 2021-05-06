@@ -7,5 +7,11 @@
   "dependencies": {
     "express": "^4.17.1",
     "pg": "^8.6.0"
+  },
+  "scripts": {
+    "start": "nodenv index.js"
+  },
+  "devDependencies": {
+    "node-env-run": "^4.0.2"
   }
 }

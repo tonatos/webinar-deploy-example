@@ -6,7 +6,8 @@ function App() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/")
+    console.log(process.env.REACT_APP_API_URL)
+    fetch(`${process.env.REACT_APP_API_URL}`)
       .then(res => res.json())
       .then(
         (result) => {
@@ -22,6 +23,8 @@ function App() {
         <img src={logo} className="App-logo" alt="logo" />
         <div className="App-Data">
           {items.data}
+          <br />
+          {process.env.NODE_ENV}
         </div>
       </header>
     </div>

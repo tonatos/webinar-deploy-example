@@ -1,0 +1,82 @@
+version: '3.7'
+
+services:
+  proxy:
+    restart: unless-stopped
+    image: traefik:v2.4-alpine
+    env_file: .env
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker"
+      - "--providers.docker.exposedByDefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web.forwardedHeaders.insecure"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    depends_on:
+      - server
+      - static
+    volumes:
+      # TODO: https://docs.traefik.io/providers/docker/#docker-api-access
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  static:
+    image: caddy:2.3.0-alpine
+    command: 'caddy file-server'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.static.rule=PathPrefix(`/public/`)"
+    volumes:
+      - public:/srv/public
+      - caddy_data:/data
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:12-alpine
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  server:
+    # image:
+    build:
+      context: ./services/server/
+      args:
+        - NODE_VERSION=${NODE_VERSION}
+      # cached_from:
+      #   - 
+    command: 'node index.js'
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    env_file: .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server.rule=PathPrefix(`/api/`)"
+    volumes:
+      - public:/app/public
+
+  client:
+    # image:
+    build:
+      context: ./services/client/
+      args:
+        - NODE_VERSION=${NODE_VERSION}
+        - REACT_APP_API_URL=${REACT_APP_API_URL}
+      # cached_from:
+      #   - 
+    command: 'ws --port ${CLIENT_PORT} --directory ./build'
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.client.rule=PathPrefix(`/`)"
+
+volumes:
+  postgres_data:
+  caddy_data:
+  public:
