@@ -6,7 +6,6 @@ function App() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    console.log(process.env.REACT_APP_API_URL)
     fetch(`${process.env.REACT_APP_API_URL}`)
       .then(res => res.json())
       .then(
@@ -22,9 +21,8 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <div className="App-Data">
+          <h2>Learn deploy</h2>
           {items.data}
-          <br />
-          {process.env.NODE_ENV}
         </div>
       </header>
     </div>

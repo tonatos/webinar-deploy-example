@@ -1,0 +1,79 @@
+stages:
+  - build
+  - clean
+  - deploy
+
+
+.stage: &stage
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "develop"'
+      when: always
+  variables:
+    ENV: stage
+    DOCKER_REGISTRY_TAG: stage
+
+.prod: &prod
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+      when: always
+  variables:
+    ENV: prod
+    DOCKER_REGISTRY_TAG: prod
+
+
+.build: &build
+  stage: build
+  image: lastdanmer/docker-compose
+  script:
+    - ln -s environments/${ENV}.env .env
+    - echo "DOCKER_REGISTRY_TAG=${DOCKER_REGISTRY_TAG}" > .env
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD registry.jetstyle.in
+    - docker-compose build
+    - docker-compose push
+
+
+build-develop:
+  <<: *stage
+  <<: *build
+
+build-master:
+  <<: *prod
+  <<: *build
+
+
+deploy-develop:
+  <<: *stage
+  stage: deploy
+  image: lastdanmer/ssh-client
+  script:
+    - ssh jetadmin@yellow.jetstyle.ru -p 9073 \n
+      "
+      cd /home/jetadmin/deploy-example &&
+      git reset --hard HEAD &&
+      git checkout $CI_COMMIT_BRANCH &&
+      git pull -f origin $CI_COMMIT_BRANCH &&
+      ln -s environments/${ENV}.env .env &&
+      docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD registry.jetstyle.in &&
+      docker-compose pull &&
+      docker-compose up -d
+      "
+
+deploy-master:
+  <<: *prod
+  stage: deploy
+  image: lastdanmer/ssh-client
+  script:
+    - echo true
+
+
+clean:
+  stage: clean
+  image: lastdanmer/docker-compose
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+      when: on_failure
+    - if: '$CI_COMMIT_REF_NAME == "develop"'
+      when: on_failure
+  script:
+    - docker-compose logs --tail 300
+    - docker-compose down -v

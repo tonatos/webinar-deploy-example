@@ -40,13 +40,13 @@ services:
     restart: unless-stopped
 
   server:
-    # image:
+    image: registry.jetstyle.in:5005/tonatos/deploy-example/server:${DOCKER_REGISTRY_TAG}
     build:
       context: ./services/server/
       args:
         - NODE_VERSION=${NODE_VERSION}
-      # cached_from:
-      #   - 
+      cached_from:
+        - registry.jetstyle.in:5005/tonatos/deploy-example/server:${DOCKER_REGISTRY_TAG}
     command: 'node index.js'
     depends_on:
       - postgres
@@ -59,14 +59,14 @@ services:
       - public:/app/public
 
   client:
-    # image:
+    image: registry.jetstyle.in:5005/tonatos/deploy-example/client:${DOCKER_REGISTRY_TAG}
     build:
       context: ./services/client/
       args:
         - NODE_VERSION=${NODE_VERSION}
         - REACT_APP_API_URL=${REACT_APP_API_URL}
-      # cached_from:
-      #   - 
+      cached_from:
+        - registry.jetstyle.in:5005/tonatos/deploy-example/client:${DOCKER_REGISTRY_TAG}
     command: 'ws --port ${CLIENT_PORT} --directory ./build'
     restart: unless-stopped
     env_file: .env

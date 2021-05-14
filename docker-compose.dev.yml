@@ -6,6 +6,12 @@ services:
     restart: "no"
     command: "true"
     entrypoint: "true"
+  
+  static:
+    image: alpine:latest
+    restart: "no"
+    command: "true"
+    entrypoint: "true"
 
   postgres:
     ports:
