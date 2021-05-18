@@ -4,66 +4,74 @@ stages:
   - deploy
 
 
-.stage: &stage
+.stage_env: &stage_env
   rules:
     - if: '$CI_COMMIT_REF_NAME == "develop"'
       when: always
   variables:
     ENV: stage
     DOCKER_REGISTRY_TAG: stage
+    SSH_HOST: yellow.jetstyle.ru
+    SSH_USER: jetadmin
+    SSH_PORT: 9078
 
-.prod: &prod
+.prod_env: &prod_env
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"'
       when: always
   variables:
     ENV: prod
     DOCKER_REGISTRY_TAG: prod
+    SSH_HOST: ya.ru
+    SSH_USER: root
+    SSH_PORT: 22
 
 
 .build: &build
   stage: build
   image: lastdanmer/docker-compose
   script:
-    - ln -s environments/${ENV}.env .env
-    - echo "DOCKER_REGISTRY_TAG=${DOCKER_REGISTRY_TAG}" > .env
+    - ln -s environments/$ENV.env .env
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD registry.jetstyle.in
     - docker-compose build
     - docker-compose push
 
 
 build-develop:
-  <<: *stage
+  <<: *stage_env
   <<: *build
 
 build-master:
-  <<: *prod
+  <<: *prod_env
   <<: *build
 
 
-deploy-develop:
-  <<: *stage
+.deploy: &deploy
   stage: deploy
   image: lastdanmer/ssh-client
   script:
-    - ssh jetadmin@yellow.jetstyle.ru -p 9073 \n
+    - ssh $SSH_USER@$SSH_HOST -p $SSH_PORT \
       "
-      cd /home/jetadmin/deploy-example &&
+      cd /home/$SSH_USER/deploy-example &&
       git reset --hard HEAD &&
       git checkout $CI_COMMIT_BRANCH &&
       git pull -f origin $CI_COMMIT_BRANCH &&
-      ln -s environments/${ENV}.env .env &&
+      ln -sf environments/$ENV.env .env &&
       docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD registry.jetstyle.in &&
       docker-compose pull &&
       docker-compose up -d
       "
 
+deploy-develop:
+  <<: *stage_env
+  <<: *deploy
+
 deploy-master:
-  <<: *prod
-  stage: deploy
-  image: lastdanmer/ssh-client
-  script:
-    - echo true
+  <<: *prod_env
+  <<: *deploy
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+      when: manual
 
 
 clean:

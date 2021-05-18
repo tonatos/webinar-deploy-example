@@ -1,5 +1,5 @@
 .DS_Store
 node_modules
-services/client/public/*
+services/client/build
 services/server/public/*
 .env
